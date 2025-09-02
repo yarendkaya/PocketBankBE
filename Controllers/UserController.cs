@@ -8,7 +8,7 @@ namespace PocketBankBE.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize]
+[Authorize] // Bu controller'daki tüm metotlar için yetkilendirme gerekir
 public class UserController : ControllerBase
 {
     private readonly ApplicationDbContext _context;
@@ -21,20 +21,23 @@ public class UserController : ControllerBase
     [HttpGet("profile")]
     public async Task<IActionResult> GetProfile()
     {
+        // Token'dan gelen kullanýcý kimliðini al
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (!int.TryParse(userIdClaim, out var userId))
         {
-            return BadRequest("Invalid user ID");
+            return BadRequest("Geçersiz kullanýcý kimliði.");
         }
 
+        // Asenkron olarak veritabanýndan kullanýcýyý bul
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-        
+
         if (user == null)
         {
-            return NotFound("User not found");
+            return NotFound("Kullanýcý bulunamadý.");
         }
 
+        // Sadece gerekli bilgileri döndür (þifre hash'i gibi veriler gönderilmez)
         return Ok(new
         {
             user.Id,
@@ -48,23 +51,25 @@ public class UserController : ControllerBase
         });
     }
 
+    // Yarým kalmýþ GetBalance metodunu tamamladýk ve asenkron yaptýk
     [HttpGet("balance")]
     public async Task<IActionResult> GetBalance()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        
+
         if (!int.TryParse(userIdClaim, out var userId))
         {
-            return BadRequest("Invalid user ID");
+            return BadRequest("Geçersiz kullanýcý kimliði.");
         }
 
         var user = await _context.Users.FirstOrDefaultAsync(u => u.Id == userId);
-        
+
         if (user == null)
         {
-            return NotFound("User not found");
+            return NotFound("Kullanýcý bulunamadý.");
         }
 
-        return Ok(new { Balance = user.Balance });
+        // Sadece bakiye bilgisini içeren bir nesne döndür
+        return Ok(new { user.Balance });
     }
 }
