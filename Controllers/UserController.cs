@@ -70,6 +70,6 @@ public class UserController : ControllerBase
         }
 
         // Sadece bakiye bilgisini içeren bir nesne döndür
-        return Ok(new { user.Balance });
+        return Ok(new { Balance = user.Balance, Currency = "TRY" });
     }
 }

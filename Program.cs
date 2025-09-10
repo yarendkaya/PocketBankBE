@@ -9,27 +9,22 @@ using System.Text;
 var builder = WebApplication.CreateBuilder(args);
 
 // --- CORS Politikasýný Ekleme ---
-// Frontend (React) uygulamasýnýn API'ye eriþebilmesi için gerekli izin.
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
-                      policy =>
-                      {
-                          // Frontend'in çalýþtýðý adresler
-                          policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
-                                .AllowAnyHeader()
-                                .AllowAnyMethod();
-                      });
+        policy =>
+        {
+            // KESÝN ÇÖZÜM: Önceki ekran görüntülerinde React uygulamanýzýn çalýþtýðý "5176" portu buraya eklendi.
+            policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5174", "http://localhost:5176", "http://localhost:5177")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
 });
 
-
 // --- Servisleri Ekleme (Dependency Injection) ---
-
-// 1. Veritabaný Baðlantýsý (DbContext) SQLite olarak ayarlandý.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. Yazdýðýnýz tüm servisler buraya ekleniyor.
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<BillService>();
@@ -38,9 +33,7 @@ builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<SavingGoalService>();
 builder.Services.AddScoped<TransactionService>();
 
-
 // --- JWT Kimlik Doðrulama (Authentication) Yapýlandýrmasý ---
-// API'nin gelen token'larý nasýl doðrulayacaðýný belirler.
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -56,15 +49,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-
 // --- Standart Servisler ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Swagger'a JWT desteði ekleme (Authorize butonu için)
+// --- Swagger Kodu ---
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "PocketBank API", Version = "v1" });
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
@@ -74,6 +67,7 @@ builder.Services.AddSwaggerGen(c =>
         BearerFormat = "JWT",
         Scheme = "Bearer"
     });
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -81,20 +75,18 @@ builder.Services.AddSwaggerGen(c =>
             {
                 Reference = new OpenApiReference
                 {
-                    Type=ReferenceType.SecurityScheme,
-                    Id="Bearer"
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
                 }
             },
-            new string[]{}
+            new string[] {}
         }
     });
 });
 
-
 // --- UYGULAMA KURULUMU (MIDDLEWARE) ---
 var app = builder.Build();
 
-// Geliþtirme ortamýnda Swagger'ý etkinleþtir
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -102,15 +94,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// CORS politikasýný etkinleþtir
 app.UseCors("AllowReactApp");
-
-// Kimlik doðrulama ve yetkilendirme middleware'lerini etkinleþtir
-// Sýralama önemlidir: Önce Authentication, sonra Authorization.
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();
