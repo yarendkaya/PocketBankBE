@@ -8,14 +8,14 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- CORS Politikasýný Ekleme ---
-// Frontend (React) uygulamasýnýn API'ye eriþebilmesi için gerekli izin.
+// --- CORS Politikasï¿½nï¿½ Ekleme ---
+// Frontend (React) uygulamasï¿½nï¿½n API'ye eriï¿½ebilmesi iï¿½in gerekli izin.
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
                       policy =>
                       {
-                          // Frontend'in çalýþtýðý adresler
+                          // Frontend'in ï¿½alï¿½ï¿½tï¿½ï¿½ï¿½ adresler
                           policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
                                 .AllowAnyHeader()
                                 .AllowAnyMethod();
@@ -25,11 +25,11 @@ builder.Services.AddCors(options =>
 
 // --- Servisleri Ekleme (Dependency Injection) ---
 
-// 1. Veritabaný Baðlantýsý (DbContext) SQLite olarak ayarlandý.
+// 1. Veritabanï¿½ Baï¿½lantï¿½sï¿½ (DbContext) SQLite olarak ayarlandï¿½.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. Yazdýðýnýz tüm servisler buraya ekleniyor.
+// 2. Yazdï¿½ï¿½ï¿½nï¿½z tï¿½m servisler buraya ekleniyor.
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<BillService>();
@@ -39,8 +39,8 @@ builder.Services.AddScoped<SavingGoalService>();
 builder.Services.AddScoped<TransactionService>();
 
 
-// --- JWT Kimlik Doðrulama (Authentication) Yapýlandýrmasý ---
-// API'nin gelen token'larý nasýl doðrulayacaðýný belirler.
+// --- JWT Kimlik Doï¿½rulama (Authentication) Yapï¿½landï¿½rmasï¿½ ---
+// API'nin gelen token'larï¿½ nasï¿½l doï¿½rulayacaï¿½ï¿½nï¿½ belirler.
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -60,8 +60,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 // --- Standart Servisler ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddHttpLogging(logging =>
+{
+    logging.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
+    logging.RequestHeaders.Add("X-Real-IP");
+    logging.RequestHeaders.Add("X-Forwarded-For");
+});
 
-// Swagger'a JWT desteði ekleme (Authorize butonu için)
+// Swagger'a JWT desteï¿½i ekleme (Authorize butonu iï¿½in)
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "PocketBank API", Version = "v1" });
@@ -94,7 +100,7 @@ builder.Services.AddSwaggerGen(c =>
 // --- UYGULAMA KURULUMU (MIDDLEWARE) ---
 var app = builder.Build();
 
-// Geliþtirme ortamýnda Swagger'ý etkinleþtir
+// Geliï¿½tirme ortamï¿½nda Swagger'ï¿½ etkinleï¿½tir
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -103,11 +109,14 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 
-// CORS politikasýný etkinleþtir
+// HTTP logging'i etkinleï¿½tir
+app.UseHttpLogging();
+
+// CORS politikasï¿½nï¿½ etkinleï¿½tir
 app.UseCors("AllowReactApp");
 
-// Kimlik doðrulama ve yetkilendirme middleware'lerini etkinleþtir
-// Sýralama önemlidir: Önce Authentication, sonra Authorization.
+// Kimlik doï¿½rulama ve yetkilendirme middleware'lerini etkinleï¿½tir
+// Sï¿½ralama ï¿½nemlidir: ï¿½nce Authentication, sonra Authorization.
 app.UseAuthentication();
 app.UseAuthorization();
 

@@ -1,4 +1,4 @@
-using Microsoft.EntityFrameworkCore; // Async metotlar için bu using gerekli
+using Microsoft.EntityFrameworkCore; // Async metotlar iï¿½in bu using gerekli
 using PocketBankBE.Data;
 using PocketBankBE.Models;
 
@@ -13,7 +13,7 @@ public class AccountService
         _context = context;
     }
 
-    // Not: Bütün metotlarý daha performanslý çalýþmalarý için asenkron (async) hale getirdik.
+    // Not: Bï¿½tï¿½n metotlarï¿½ daha performanslï¿½ ï¿½alï¿½ï¿½malarï¿½ iï¿½in asenkron (async) hale getirdik.
     public async Task<IEnumerable<Account>> GetAllAsync()
     {
         return await _context.Accounts.ToListAsync();
@@ -24,10 +24,11 @@ public class AccountService
         return await _context.Accounts.FindAsync(id);
     }
 
-    public async Task AddAsync(Account account)
+    public async Task<Account> AddAsync(Account account)
     {
         _context.Accounts.Add(account);
         await _context.SaveChangesAsync();
+        return account;
     }
 
     public async Task UpdateAsync(Account account)
@@ -36,13 +37,22 @@ public class AccountService
         await _context.SaveChangesAsync();
     }
 
-    public async Task DeleteAsync(int id)
+    public async Task DeleteAsync(Account account)
     {
-        var account = await _context.Accounts.FindAsync(id);
-        if (account != null)
-        {
-            _context.Accounts.Remove(account);
-            await _context.SaveChangesAsync();
-        }
+        _context.Accounts.Remove(account);
+        await _context.SaveChangesAsync();
+    }
+
+    public async Task<IEnumerable<Account>> GetAccountsByUserIdAsync(int userId)
+    {
+        return await _context.Accounts
+            .Where(a => a.UserId == userId)
+            .ToListAsync();
+    }
+
+    public async Task<Account?> GetAccountByIdAsync(int id, int userId)
+    {
+        return await _context.Accounts
+            .FirstOrDefaultAsync(a => a.Id == id && a.UserId == userId);
     }
 }
