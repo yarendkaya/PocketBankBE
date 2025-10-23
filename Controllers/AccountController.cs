@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using PocketBankBE.DTOs;
 using PocketBankBE.Models;
 using PocketBankBE.Services;
 using System.Security.Claims;
@@ -9,7 +10,7 @@ namespace PocketBankBE.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
-[Authorize] // Bu controller'a artýk sadece giriþ yapmýþ kullanýcýlar eriþebilir
+[Authorize] // Bu controller'a artï¿½k sadece giriï¿½ yapmï¿½ï¿½ kullanï¿½cï¿½lar eriï¿½ebilir
 public class AccountController : ControllerBase
 {
     private readonly AccountService _service;
@@ -19,15 +20,15 @@ public class AccountController : ControllerBase
         _service = service;
     }
 
-    // Giriþ yapmýþ kullanýcýnýn ID'sini token'dan okur
+    // Giriï¿½ yapmï¿½ï¿½ kullanï¿½cï¿½nï¿½n ID'sini token'dan okur
     private int GetCurrentUserId()
     {
         var userIdClaim = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        // Gerçek bir uygulamada TryParse daha güvenli olur
+        // Gerï¿½ek bir uygulamada TryParse daha gï¿½venli olur
         return int.Parse(userIdClaim!);
     }
 
-    // Sadece giriþ yapmýþ kullanýcýnýn hesaplarýný getirir
+    // Sadece giriï¿½ yapmï¿½ï¿½ kullanï¿½cï¿½nï¿½n hesaplarï¿½nï¿½ getirir
     [HttpGet]
     public async Task<IActionResult> GetUserAccounts()
     {
@@ -36,7 +37,7 @@ public class AccountController : ControllerBase
         return Ok(accounts);
     }
 
-    // Sadece giriþ yapmýþ kullanýcýnýn belirli bir hesabýný getirir
+    // Sadece giriï¿½ yapmï¿½ï¿½ kullanï¿½cï¿½nï¿½n belirli bir hesabï¿½nï¿½ getirir
     [HttpGet("{id}")]
     public async Task<IActionResult> GetAccountById(int id)
     {
@@ -44,61 +45,71 @@ public class AccountController : ControllerBase
         var account = await _service.GetAccountByIdAsync(id, userId);
         if (account == null)
         {
-            return NotFound("Hesap bulunamadý veya bu hesaba eriþim yetkiniz yok.");
+            return NotFound("Hesap bulunamadï¿½ veya bu hesaba eriï¿½im yetkiniz yok.");
         }
         return Ok(account);
     }
 
-    // Giriþ yapmýþ kullanýcý için yeni bir hesap oluþturur
+    // Giriï¿½ yapmï¿½ï¿½ kullanï¿½cï¿½ iï¿½in yeni bir hesap oluï¿½turur
     [HttpPost]
-    public async Task<IActionResult> AddAccount([FromBody] Account account)
+    public async Task<IActionResult> AddAccount([FromBody] CreateAccountDto accountDto)
     {
-        if (account == null)
+        if (accountDto == null)
         {
             return BadRequest();
         }
-        // Hesabýn doðru kullanýcýya atandýðýndan emin ol
-        account.UserId = GetCurrentUserId();
+
+        var account = new Account
+        {
+            AccountName = accountDto.AccountName,
+            AccountType = accountDto.AccountType,
+            Currency = accountDto.Currency,
+            Balance = accountDto.Balance,
+            UserId = GetCurrentUserId()
+        };
 
         var newAccount = await _service.AddAsync(account);
         return CreatedAtAction(nameof(GetAccountById), new { id = newAccount.Id }, newAccount);
     }
 
-    // Sadece giriþ yapmýþ kullanýcýnýn bir hesabýný günceller
+    // Sadece giriï¿½ yapmï¿½ï¿½ kullanï¿½cï¿½nï¿½n bir hesabï¿½nï¿½ gï¿½nceller
     [HttpPut("{id}")]
-    public async Task<IActionResult> UpdateAccount(int id, [FromBody] Account accountToUpdate)
+    public async Task<IActionResult> UpdateAccount(int id, [FromBody] UpdateAccountDto accountDto)
     {
-        if (id != accountToUpdate.Id || accountToUpdate == null)
+        if (accountDto == null)
         {
             return BadRequest();
         }
 
         var userId = GetCurrentUserId();
-        // Güncellenmek istenen hesabýn bu kullanýcýya ait olup olmadýðýný kontrol et
+        // Gï¿½ncellenmek istenen hesabï¿½n bu kullanï¿½cï¿½ya ait olup olmadï¿½ï¿½ï¿½nï¿½ kontrol et
         var existingAccount = await _service.GetAccountByIdAsync(id, userId);
         if (existingAccount == null)
         {
-            return NotFound("Güncellenecek hesap bulunamadý veya bu hesaba eriþim yetkiniz yok.");
+            return NotFound("Gï¿½ncellenecek hesap bulunamadï¿½ veya bu hesaba eriï¿½im yetkiniz yok.");
         }
 
-        // UserId'nin deðiþtirilmediðinden emin ol
-        accountToUpdate.UserId = userId;
+        // Mevcut hesabï¿½ gï¿½ncelle
+        existingAccount.AccountName = accountDto.AccountName;
+        existingAccount.AccountType = accountDto.AccountType;
+        existingAccount.Currency = accountDto.Currency;
+        existingAccount.Balance = accountDto.Balance;
 
-        await _service.UpdateAsync(accountToUpdate);
+        await _service.UpdateAsync(existingAccount);
         return NoContent();
     }
 
-    // Sadece giriþ yapmýþ kullanýcýnýn bir hesabýný siler
+    // Sadece giriï¿½ yapmï¿½ï¿½ kullanï¿½cï¿½nï¿½n bir hesabï¿½nï¿½ siler
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteAccount(int id)
     {
         var userId = GetCurrentUserId();
-        // Silinmek istenen hesabýn bu kullanýcýya ait olup olmadýðýný kontrol et
+        // Silinmek istenen hesabï¿½n bu kullanï¿½cï¿½ya ait olup olmadï¿½ï¿½ï¿½nï¿½ kontrol et
         var accountToDelete = await _service.GetAccountByIdAsync(id, userId);
 
         if (accountToDelete == null)
         {
-            return NotFound("Silinecek hesap bulunamadý veya bu hesaba eriþim yetkiniz yok.");
+            return NotFound("Silinecek hesap bulunamadï¿½ veya bu hesaba eriï¿½im yetkiniz yok.");
         }
 
         await _service.DeleteAsync(accountToDelete);

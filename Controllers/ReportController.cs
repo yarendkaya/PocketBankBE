@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PocketBankBE.DTOs;
 using PocketBankBE.Models;
 using PocketBankBE.Services;
 
@@ -27,17 +28,30 @@ public class ReportController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult Add(Report report)
+    public IActionResult Add([FromBody] CreateReportDto reportDto)
     {
+        var report = new Report
+        {
+            Type = reportDto.Type,
+            FilePath = reportDto.FilePath,
+            CreatedAt = DateTime.UtcNow
+            // UserId should be set based on authenticated user
+        };
+
         _service.Add(report);
         return CreatedAtAction(nameof(GetById), new { id = report.Id }, report);
     }
 
     [HttpPut("{id}")]
-    public IActionResult Update(int id, Report report)
+    public IActionResult Update(int id, [FromBody] UpdateReportDto reportDto)
     {
-        if (id != report.Id) return BadRequest();
-        _service.Update(report);
+        var existingReport = _service.GetById(id);
+        if (existingReport == null) return NotFound();
+
+        existingReport.Type = reportDto.Type;
+        existingReport.FilePath = reportDto.FilePath;
+
+        _service.Update(existingReport);
         return NoContent();
     }
 

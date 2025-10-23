@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PocketBankBE.DTOs;
 using PocketBankBE.Models;
 using PocketBankBE.Services;
 
@@ -27,17 +28,33 @@ public class BillController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult Add(Bill bill)
+    public IActionResult Add([FromBody] CreateBillDto billDto)
     {
+        var bill = new Bill
+        {
+            BillName = billDto.BillName,
+            Amount = billDto.Amount,
+            DueDate = billDto.DueDate,
+            IsPaid = billDto.IsPaid
+            // UserId should be set based on authenticated user
+        };
+
         _service.Add(bill);
         return CreatedAtAction(nameof(GetById), new { id = bill.Id }, bill);
     }
 
     [HttpPut("{id}")]
-    public IActionResult Update(int id, Bill bill)
+    public IActionResult Update(int id, [FromBody] UpdateBillDto billDto)
     {
-        if (id != bill.Id) return BadRequest();
-        _service.Update(bill);
+        var existingBill = _service.GetById(id);
+        if (existingBill == null) return NotFound();
+
+        existingBill.BillName = billDto.BillName;
+        existingBill.Amount = billDto.Amount;
+        existingBill.DueDate = billDto.DueDate;
+        existingBill.IsPaid = billDto.IsPaid;
+
+        _service.Update(existingBill);
         return NoContent();
     }
 
