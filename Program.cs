@@ -8,28 +8,23 @@ using System.Text;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// --- CORS Politikas�n� Ekleme ---
-// Frontend (React) uygulamas�n�n API'ye eri�ebilmesi i�in gerekli izin.
+// --- CORS Politikasýný Ekleme ---
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowReactApp",
-                      policy =>
-                      {
-                          // Frontend'in �al��t��� adresler
-                          policy.WithOrigins("http://localhost:3000", "http://localhost:5173")
-                                .AllowAnyHeader()
-                                .AllowAnyMethod();
-                      });
+        policy =>
+        {
+            // KESÝN ÇÖZÜM: Önceki ekran görüntülerinde React uygulamanýzýn çalýþtýðý "5176" portu buraya eklendi.
+            policy.WithOrigins("http://localhost:3000", "http://localhost:5173", "http://localhost:5174", "http://localhost:5176", "http://localhost:5177")
+                  .AllowAnyHeader()
+                  .AllowAnyMethod();
+        });
 });
 
-
 // --- Servisleri Ekleme (Dependency Injection) ---
-
-// 1. Veritaban� Ba�lant�s� (DbContext) SQLite olarak ayarland�.
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseSqlite(builder.Configuration.GetConnectionString("DefaultConnection")));
 
-// 2. Yazd���n�z t�m servisler buraya ekleniyor.
 builder.Services.AddScoped<IJwtService, JwtService>();
 builder.Services.AddScoped<AccountService>();
 builder.Services.AddScoped<BillService>();
@@ -38,9 +33,7 @@ builder.Services.AddScoped<ReportService>();
 builder.Services.AddScoped<SavingGoalService>();
 builder.Services.AddScoped<TransactionService>();
 
-
-// --- JWT Kimlik Do�rulama (Authentication) Yap�land�rmas� ---
-// API'nin gelen token'lar� nas�l do�rulayaca��n� belirler.
+// --- JWT Kimlik Doðrulama (Authentication) Yapýlandýrmasý ---
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
@@ -56,21 +49,15 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-
 // --- Standart Servisler ---
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddHttpLogging(logging =>
-{
-    logging.LoggingFields = Microsoft.AspNetCore.HttpLogging.HttpLoggingFields.All;
-    logging.RequestHeaders.Add("X-Real-IP");
-    logging.RequestHeaders.Add("X-Forwarded-For");
-});
 
-// Swagger'a JWT deste�i ekleme (Authorize butonu i�in)
+// --- Swagger Kodu ---
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "PocketBank API", Version = "v1" });
+
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
         In = ParameterLocation.Header,
@@ -80,6 +67,7 @@ builder.Services.AddSwaggerGen(c =>
         BearerFormat = "JWT",
         Scheme = "Bearer"
     });
+
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
@@ -87,20 +75,18 @@ builder.Services.AddSwaggerGen(c =>
             {
                 Reference = new OpenApiReference
                 {
-                    Type=ReferenceType.SecurityScheme,
-                    Id="Bearer"
+                    Type = ReferenceType.SecurityScheme,
+                    Id = "Bearer"
                 }
             },
-            new string[]{}
+            new string[] {}
         }
     });
 });
 
-
 // --- UYGULAMA KURULUMU (MIDDLEWARE) ---
 var app = builder.Build();
 
-// Geli�tirme ortam�nda Swagger'� etkinle�tir
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -108,18 +94,8 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
-
-// HTTP logging'i etkinle�tir
-app.UseHttpLogging();
-
-// CORS politikas�n� etkinle�tir
 app.UseCors("AllowReactApp");
-
-// Kimlik do�rulama ve yetkilendirme middleware'lerini etkinle�tir
-// S�ralama �nemlidir: �nce Authentication, sonra Authorization.
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
-
 app.Run();

@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using PocketBankBE.DTOs;
 using PocketBankBE.Models;
 using PocketBankBE.Services;
 
@@ -30,17 +31,36 @@ public class TransactionController : ControllerBase
     }
 
     [HttpPost]
-    public IActionResult Add(Transaction transaction)
+    public IActionResult Add([FromBody] CreateTransactionDto transactionDto)
     {
+        var transaction = new Transaction
+        {
+            AccountId = transactionDto.AccountId,
+            Amount = transactionDto.Amount,
+            Date = transactionDto.Date,
+            Category = transactionDto.Category,
+            Description = transactionDto.Description,
+            IsIncome = transactionDto.IsIncome
+        };
+
         _service.Add(transaction);
         return CreatedAtAction(nameof(GetById), new { id = transaction.Id }, transaction);
     }
 
     [HttpPut("{id}")]
-    public IActionResult Update(int id, Transaction transaction)
+    public IActionResult Update(int id, [FromBody] UpdateTransactionDto transactionDto)
     {
-        if (id != transaction.Id) return BadRequest();
-        _service.Update(transaction);
+        var existingTransaction = _service.GetById(id);
+        if (existingTransaction == null) return NotFound();
+
+        existingTransaction.AccountId = transactionDto.AccountId;
+        existingTransaction.Amount = transactionDto.Amount;
+        existingTransaction.Date = transactionDto.Date;
+        existingTransaction.Category = transactionDto.Category;
+        existingTransaction.Description = transactionDto.Description;
+        existingTransaction.IsIncome = transactionDto.IsIncome;
+
+        _service.Update(existingTransaction);
         return NoContent();
     }
 
